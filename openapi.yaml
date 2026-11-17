@@ -1,0 +1,136 @@
+openapi: 3.0.3
+info:
+  title: Movie Favorites API
+  version: 1.0.0
+  description: REST API для збереження обраних фільмів (дані з TMDB, БД — Supabase PostgreSQL).
+servers:
+  - url: http://localhost:3000
+  - url: https://YOUR-SERVICE.onrender.com
+    description: Production (Render)
+paths:
+  /health:
+    get:
+      summary: Перевірка стану
+      responses:
+        '200': { description: OK }
+  /metrics:
+    get:
+      summary: Метрики сервісу (uptime, кількість запитів, середній час відповіді, памʼять)
+      responses:
+        '200': { description: OK }
+  /api/tmdb/search:
+    get:
+      summary: Пошук фільмів у TMDB
+      tags: [TMDB]
+      parameters:
+        - { name: query, in: query, required: true, schema: { type: string }, example: matrix }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        '200': { description: Результати пошуку TMDB }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/tmdb/popular:
+    get:
+      summary: Популярні фільми з TMDB
+      tags: [TMDB]
+      responses:
+        '200': { description: Список популярних фільмів }
+  /api/favorites:
+    get:
+      summary: Отримати всі обрані фільми
+      tags: [Favorites]
+      responses:
+        '200':
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Favorite' }
+    post:
+      summary: Додати фільм в обране (дані підтягуються з TMDB за tmdb_id)
+      tags: [Favorites]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FavoriteCreate' }
+      responses:
+        '201':
+          description: Створено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Favorite' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/favorites/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    get:
+      summary: Отримати обраний фільм за id
+      tags: [Favorites]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Favorite' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      summary: Оновити нотатку або оцінку
+      tags: [Favorites]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FavoriteUpdate' }
+      responses:
+        '200':
+          description: Оновлено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Favorite' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: Видалити з обраного
+      tags: [Favorites]
+      responses:
+        '204': { description: Видалено }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: Помилка
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    Favorite:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        tmdb_id: { type: integer, example: 603 }
+        title: { type: string, example: Матриця }
+        overview: { type: string, nullable: true }
+        poster_path: { type: string, nullable: true }
+        release_date: { type: string, format: date, nullable: true }
+        vote_average: { type: number, example: 8.2 }
+        note: { type: string, nullable: true }
+        rating: { type: integer, minimum: 1, maximum: 10, nullable: true }
+        created_at: { type: string, format: date-time }
+    FavoriteCreate:
+      type: object
+      required: [tmdb_id]
+      properties:
+        tmdb_id: { type: integer, example: 603 }
+        note: { type: string }
+        rating: { type: integer, minimum: 1, maximum: 10 }
+    FavoriteUpdate:
+      type: object
+      properties:
+        note: { type: string }
+        rating: { type: integer, minimum: 1, maximum: 10 }

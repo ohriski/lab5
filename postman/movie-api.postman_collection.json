@@ -1,0 +1,80 @@
+{
+  "info": {
+    "name": "Movie Favorites API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "favId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "TMDB search",
+      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tmdb/search?query=matrix", "host": ["{{baseUrl}}"], "path": ["api","tmdb","search"], "query": [{ "key": "query", "value": "matrix" }] } },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 + results', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().results).to.be.an('array'); });"] } }]
+    },
+    {
+      "name": "Create favorite",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"tmdb_id\": 603,\n  \"note\": \"Культова класика\",\n  \"rating\": 9\n}" },
+        "url": "{{baseUrl}}/api/favorites"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));",
+        "pm.collectionVariables.set('favId', pm.response.json().id);"
+      ] } }]
+    },
+    {
+      "name": "Create duplicate (409)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"tmdb_id\": 603 }" },
+        "url": "{{baseUrl}}/api/favorites"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('409 Conflict', () => pm.response.to.have.status(409));"] } }]
+    },
+    {
+      "name": "Create invalid (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"rating\": 5 }" },
+        "url": "{{baseUrl}}/api/favorites"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] } }]
+    },
+    {
+      "name": "List favorites",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/favorites" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 + array', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array'); });"] } }]
+    },
+    {
+      "name": "Get favorite by id",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/favorites/{{favId}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "Update favorite",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"rating\": 10, \"note\": \"Оновлено\" }" },
+        "url": "{{baseUrl}}/api/favorites/{{favId}}"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('rating = 10', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().rating).to.eql(10); });"] } }]
+    },
+    {
+      "name": "Delete favorite",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/favorites/{{favId}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] } }]
+    }
+  ]
+}
